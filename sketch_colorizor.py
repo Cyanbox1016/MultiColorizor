@@ -28,8 +28,8 @@ def colorize(img, sketch):
     start = time.time()
 
     def cal_index(img, p):
-        row_num = img.shape[0]
-        return p[0] * row_num + p[1]
+        row_length = img.shape[1]
+        return p[0] * row_length + p[1]
 
     def get_neighbors(img, p, d=3):
         y = p[0]
@@ -43,7 +43,7 @@ def colorize(img, sketch):
             for j in range(left, right + 1):
                 if not (i == y and j == x):
                     neighbors.append((i, j))
-        neighbors.append((y, x))
+
         return neighbors
     
     def get_weights(img, p):
@@ -59,9 +59,7 @@ def colorize(img, sketch):
         sigma = max(sigma, -mgv / np.log(0.01))
         sigma = max(sigma, 0.000002)
         neighbor_weights = np.exp(-(neighbor_lum - img_lum[p[0], p[1]]) ** 2 / (2 * (sigma) ** 2))
-        neighbor_weights[-1] = 0.
         neighbor_weights = neighbor_weights / np.sum(neighbor_weights)
-        neighbor_weights[-1] = 1.
         return neighbor_weights, neighbor_idx
     
     def get_weight_matrix(img):
