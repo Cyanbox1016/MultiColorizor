@@ -52,13 +52,13 @@ def colorize(img, sketch):
         neighbor_idx = [cal_index(img, p) for p in neighbors]
         neighbor_lum = [img_lum[p[0], p[1]] for p in neighbors]
         neighbor_std = np.std(neighbor_lum)
-        
         # some special tricks for std
-        sigma = neighbor_std * 0.75
+        sigma = neighbor_std * 0.6
         mgv = min((neighbor_lum - img_lum[p[0], p[1]]) ** 2)
         sigma = max(sigma, -mgv / np.log(0.01))
         sigma = max(sigma, 0.000002)
-        neighbor_weights = np.exp(-(neighbor_lum - img_lum[p[0], p[1]]) ** 2 / (2 * (sigma) ** 2))
+        neighbor_weights = np.exp(-(neighbor_lum - img_lum[p[0], p[1]]) ** 2 / (2 * (sigma ** 2)))
+        
         neighbor_weights = neighbor_weights / np.sum(neighbor_weights)
         return neighbor_weights, neighbor_idx
     
@@ -70,19 +70,30 @@ def colorize(img, sketch):
         for i in range(n):
             for j in range(m):
                 neighbor_weights, neighbor_idx = get_weights(img, (i, j))
-                weight_matrix[cal_index(img, (i, j)), neighbor_idx] = neighbor_weights
+                weight_matrix[cal_index(img, [i, j]), neighbor_idx] = -1 * neighbor_weights
+                # print(neighbor_idx)
+                if (i % 50 == 0 and j == 0):
+                    print(i)
+                # print(weight_matrix[cal_index(img, [i, j]), neighbor_idx])
+        # weight_matrix = weight_matrix.tolil()
+        print("here")
         weight_matrix[np.arange(n * m), np.arange(n * m)] = 1.
+        # print(weight_matrix)
         return weight_matrix
     
     weight_matrix = get_weight_matrix(img)
     print("finish calculating matrix")
     print(time.time() - start)
-
     
     weight_matrix = weight_matrix.tocsc()
-    colored_region = sketch.sum(2) > 2
-    colored_indices = np.nonzero(colored_region.reshape(img.shape[0] * img.shape[1], order='F'))
+    
 
+    colored_region = sketch.sum(2)
+    print(colored_region.shape)
+    colored_indices = np.nonzero(colored_region.flatten())
+    print(colored_indices)
+    
+    start = time.time()
     for channel in [1, 2]:
         colored_img = sketch[:, :, channel].flatten()
         b = np.zeros(img.shape[0] * img.shape[1])
@@ -90,6 +101,7 @@ def colorize(img, sketch):
         x = sparse.linalg.spsolve(weight_matrix, b)[:img.shape[0]*img.shape[1]]
         output[:, :, channel] = x.reshape(img.shape[0], img.shape[1])
     
+    print(time.time() - start)
     output = output.astype(np.uint8)
     output = cv2.cvtColor(output, cv2.COLOR_YUV2BGR)
 

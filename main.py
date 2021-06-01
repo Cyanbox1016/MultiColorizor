@@ -19,8 +19,8 @@ from sketch_colorizor import colorize
 
 # colorize_photo(img, ref, img_l, ref_l)
 
-img = cv2.imread("gray.jpg")
-sketch = cv2.imread("sketch.bmp")
+img = cv2.imread("exm3.bmp")
+sketch = cv2.imread("skt3.bmp")
 # cv2.imshow("title", img)
 # cv2.waitKey(0)
 
