@@ -73,7 +73,7 @@ def colorize(img, sketch):
         colored_img = sketch[:, :, channel].flatten()
         b = np.zeros(img.shape[0] * img.shape[1])
         b[colored_indices] = colored_img[colored_indices]
-        x = sparse.linarg.spsolve(weight_matrix, b)[:img.shape[0]*img.shape[1]]
+        x = sparse.linalg.spsolve(weight_matrix, b)[:img.shape[0]*img.shape[1]]
         output[:, :, channel] = x.reshape(img.shape[0], img.shape[1])
     
     output = output.astype(np.uint8)
