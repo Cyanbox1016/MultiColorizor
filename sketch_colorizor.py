@@ -6,30 +6,43 @@ from sklearn.preprocessing import normalize
 import time
 
 def colorize(img, sketch):
-    # transfer from BGR to YUV
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
-    sketch = cv2.cvtColor(sketch, cv2.COLOR_BGR2YUV)
+    
+    def rgb2yiq(rgb):
+        rgb = rgb / 255.0
+        y = np.clip(np.dot(rgb, np.array([0.299, 0.587, 0.144])),             0,   1)
+        i = np.clip(np.dot(rgb, np.array([0.595716, -0.274453, -0.321263])), -0.5957, 0.5957)
+        q = np.clip(np.dot(rgb, np.array([0.211456, -0.522591, 0.311135])),  -0.5226, 0.5226)
+        yiq = rgb
+        yiq[..., 0] = y
+        yiq[..., 1] = i
+        yiq[..., 2] = q
+        return yiq
 
-    img = img.astype(np.float64)
-    sketch = sketch.astype(np.float64)
 
-    # prepare for output
-    output = np.zeros(img.shape, dtype=np.float64)
-    output[:, :, 0] = img[:, :, 0]
-    output[:, :, 1] = sketch[:, :, 1]
-    output[:, :, 2] = sketch[:, :, 2]
-
-    output = output.astype(np.uint8)
-    output = cv2.cvtColor(output, cv2.COLOR_YUV2BGR)
-
-    cv2.imshow("title", output)
-    cv2.waitKey(0)
-
-    start = time.time()
+    def yiq2rgb(yiq):
+        r = np.dot(yiq, np.array([1.0,  0.956295719758948,  0.621024416465261]))
+        g = np.dot(yiq, np.array([1.0, -0.272122099318510, -0.647380596825695]))
+        b = np.dot(yiq, np.array([1.0, -1.106989016736491,  1.704614998364648]))
+        rgb = yiq
+        rgb[:, :, 0] = r
+        rgb[:, :, 1] = g
+        rgb[:, :, 2] = b
+        out = np.clip(rgb, 0.0, 1.0) * 255.0
+        out = out.astype(np.uint8)
+        return out
 
     def cal_index(img, p):
         row_length = img.shape[1]
         return p[0] * row_length + p[1]
+
+    # transfer from BGR to YUV
+    img = rgb2yiq(img)
+    sketch = rgb2yiq(sketch)
+
+    n, m = img.shape[0], img.shape[1]
+    colored_region = sketch.sum(2)
+    colored_indices = cal_index(img, np.nonzero(colored_region))
+    # TODO: 处理白色区域
 
     def get_neighbors(img, p, d=3):
         y = p[0]
@@ -48,62 +61,53 @@ def colorize(img, sketch):
     
     def get_weights(img, p):
         neighbors = get_neighbors(img, p)
-        img_lum = img[:, :, 0]
+        img_lum = np.array(img[:, :, 0], dtype=np.float64)
         neighbor_idx = [cal_index(img, p) for p in neighbors]
         neighbor_lum = [img_lum[p[0], p[1]] for p in neighbors]
         neighbor_std = np.std(neighbor_lum)
         # some special tricks for std
-        sigma = neighbor_std * 0.6
-        mgv = min((neighbor_lum - img_lum[p[0], p[1]]) ** 2)
-        sigma = max(sigma, -mgv / np.log(0.01))
-        sigma = max(sigma, 0.000002)
-        neighbor_weights = np.exp(-(neighbor_lum - img_lum[p[0], p[1]]) ** 2 / (2 * (sigma ** 2)))
-        
-        neighbor_weights = neighbor_weights / np.sum(neighbor_weights)
-        return neighbor_weights, neighbor_idx
+        if (neighbor_std <= 0):
+            return np.zeros(shape=len(neighbors)), neighbor_idx
+        else:
+            return [np.exp(-1 * np.square(img_lum[tuple(p)] - y) / 2 / neighbor_std / neighbor_std) for y in neighbor_lum], neighbor_idx
     
     def get_weight_matrix(img):
         n, m = img.shape[0], img.shape[1]
         weight_matrix = sparse.lil_matrix((n * m, n * m))
-        print(weight_matrix.shape)
 
         for i in range(n):
             for j in range(m):
-                neighbor_weights, neighbor_idx = get_weights(img, (i, j))
-                weight_matrix[cal_index(img, [i, j]), neighbor_idx] = -1 * neighbor_weights
-                # print(neighbor_idx)
-                if (i % 50 == 0 and j == 0):
-                    print(i)
-                # print(weight_matrix[cal_index(img, [i, j]), neighbor_idx])
-        # weight_matrix = weight_matrix.tolil()
-        print("here")
+                neighbor_weights, neighbor_idx = get_weights(img, [i, j])
+                weight_matrix[cal_index(img, [i, j]), neighbor_idx] = -1 * np.asarray(neighbor_weights)
+
+        weight_matrix = normalize(weight_matrix, norm='l1', axis=1).tolil()
         weight_matrix[np.arange(n * m), np.arange(n * m)] = 1.
-        # print(weight_matrix)
         return weight_matrix
     
     weight_matrix = get_weight_matrix(img)
     print("finish calculating matrix")
-    print(time.time() - start)
     
     weight_matrix = weight_matrix.tocsc()
-    
-
-    colored_region = sketch.sum(2)
-    print(colored_region.shape)
-    colored_indices = np.nonzero(colored_region.flatten())
-    print(colored_indices)
-    
     start = time.time()
-    for channel in [1, 2]:
-        colored_img = sketch[:, :, channel].flatten()
-        b = np.zeros(img.shape[0] * img.shape[1])
-        b[colored_indices] = colored_img[colored_indices]
-        x = sparse.linalg.spsolve(weight_matrix, b)[:img.shape[0]*img.shape[1]]
-        output[:, :, channel] = x.reshape(img.shape[0], img.shape[1])
+
+    for p in list(colored_indices):
+        weight_matrix[p] = sparse.csr_matrix(([1.0], ([0], [p])), shape=(1, n*m))
     
+    b1 = np.zeros(m * n)
+    b2 = np.zeros(m * n)
+    b1[colored_indices] = sketch[:, :, 1].flatten()[colored_indices]
+    b2[colored_indices] = sketch[:, :, 2].flatten()[colored_indices]
+
+    x1 = sparse.linalg.spsolve(weight_matrix, b1)
+    x2 = sparse.linalg.spsolve(weight_matrix, b2)
+    print("finish calculating")
     print(time.time() - start)
-    output = output.astype(np.uint8)
-    output = cv2.cvtColor(output, cv2.COLOR_YUV2BGR)
+
+    output = np.zeros((n, m, 3), dtype=np.float64)
+    output[:, :, 0] = img[:, :, 0]
+    output[:, :, 1] = x1.reshape((n, m)) 
+    output[:, :, 2] = x2.reshape((n, m))
+    output = yiq2rgb(output)   
 
     cv2.imshow("title", output)
     cv2.waitKey(0)
