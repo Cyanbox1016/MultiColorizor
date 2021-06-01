@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 from scipy import sparse
 from sklearn.preprocessing import normalize
+import time
 
 def colorize(img, sketch):
     # transfer from BGR to YUV
@@ -14,7 +15,17 @@ def colorize(img, sketch):
 
     # prepare for output
     output = np.zeros(img.shape, dtype=np.float64)
-    output[0] = img[0]
+    output[:, :, 0] = img[:, :, 0]
+    output[:, :, 1] = sketch[:, :, 1]
+    output[:, :, 2] = sketch[:, :, 2]
+
+    output = output.astype(np.uint8)
+    output = cv2.cvtColor(output, cv2.COLOR_YUV2BGR)
+
+    cv2.imshow("title", output)
+    cv2.waitKey(0)
+
+    start = time.time()
 
     def cal_index(img, p):
         row_num = img.shape[0]
@@ -66,6 +77,11 @@ def colorize(img, sketch):
         return weight_matrix
     
     weight_matrix = get_weight_matrix(img)
+    print("finish calculating matrix")
+    print(time.time() - start)
+
+    
+    weight_matrix = weight_matrix.tocsc()
     colored_region = sketch.sum(2) > 2
     colored_indices = np.nonzero(colored_region.reshape(img.shape[0] * img.shape[1], order='F'))
 

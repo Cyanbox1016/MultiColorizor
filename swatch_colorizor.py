@@ -22,7 +22,7 @@ def colorize_swatch(img, ref):
 
     ref = cv2.cvtColor(ref, cv2.COLOR_BGR2Lab)
     print(ref.shape)
-
+ 
     ref = ref.astype(np.float64)
     ref_lum = ref[:, :, 0]
 
