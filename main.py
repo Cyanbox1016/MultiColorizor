@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 from local_tinter import RecRegion, colorize_inside_region
 from swatch_colorizor import colorize_photo
-from sketch_colorizor import colorize
+from sketch_colorizor_2 import colorize
 
 # img = cv2.imread("4.jpg")
 # ref = cv2.imread("3.png")
@@ -21,8 +21,8 @@ from sketch_colorizor import colorize
 
 img = cv2.imread("exm3.bmp")
 sketch = cv2.imread("skt3.bmp")
-# cv2.imshow("title", img)
-# cv2.waitKey(0)
+cv2.imshow("title", img)
+cv2.waitKey(0)
 
 # cv2.imshow("title", sketch)
 # cv2.waitKey(0)
