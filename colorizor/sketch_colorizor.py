@@ -33,11 +33,21 @@ def colorize(img, sketch):
         row_length = img.shape[1]
         return p[0] * row_length + p[1]
 
+    n, m = img.shape[0], img.shape[1]
+
     img = rgb2yiq(img)
     sketch = rgb2yiq(sketch)
 
-    n, m = img.shape[0], img.shape[1]
+    white_region = (abs(sketch[:, :, 0] - 1.0) + abs(sketch[:, :, 1]) + abs(sketch[:, :, 2])) < 1e-8
+    white_region_logic = white_region.copy()
+    white_region = white_region.astype(np.int)
+    white_indices = cal_index(img, np.nonzero(white_region))
+
+
     colored_region = sketch.sum(2)
+    colored_region = colored_region > 1e-8
+    colored_region = np.logical_and(colored_region, np.logical_not(white_region_logic))
+    colored_region = colored_region.astype(np.int)
     colored_indices = cal_index(img, np.nonzero(colored_region))
 
     def get_neighbors(img, p, d=2):
@@ -98,11 +108,15 @@ def colorize(img, sketch):
 
     for p in list(colored_indices):
         weight_matrix[p] = sparse.csr_matrix(([1.0], ([0], [p])), shape=(1, n*m))
+    for p in list(white_indices):
+        weight_matrix[p] = sparse.csr_matrix(([1.0], ([0], [p])), shape=(1, n*m))
     
     b1 = np.zeros(m * n)
     b2 = np.zeros(m * n)
     b1[colored_indices] = sketch[:, :, 1].flatten()[colored_indices]
     b2[colored_indices] = sketch[:, :, 2].flatten()[colored_indices]
+    b1[white_indices] = img[:, :, 1].flatten()[white_indices]
+    b2[white_indices] = img[:, :, 2].flatten()[white_indices]
 
     x1 = sparse.linalg.spsolve(weight_matrix, b1)
     x2 = sparse.linalg.spsolve(weight_matrix, b2)
@@ -117,3 +131,5 @@ def colorize(img, sketch):
 
     cv2.imshow("title", output)
     cv2.waitKey(0)
+
+    cv2.imwrite("out.jpg", output)

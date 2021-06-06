@@ -77,7 +77,7 @@ def colorize_swatch(img, ref):
     return output
 
 
-def colorize_photo(img, ref, img_swatches: list, ref_swatches: list):
+def colorize(img, ref, img_swatches: list, ref_swatches: list):
     assert len(img_swatches) == len(ref_swatches)
     mask = np.zeros(img.shape, dtype=np.int)
     swatch_num = len(img_swatches)
