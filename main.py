@@ -21,10 +21,12 @@
 # if __name__ == '__main__':
 #     main()
 
-from colorizor.sketch_colorizor import colorize
+from colorizor.cnn_colorizor_2 import colorize
 import cv2
 
 img = cv2.imread("out.jpg")
 ref = cv2.imread("k2.bmp")
 
-colorize(img, ref)
+img = colorize(img, "colorizor\\model\\model.ckpt-119000", "colorizor\\model\\pts_in_hull.npy")
+cv2.imshow("title", img)
+
