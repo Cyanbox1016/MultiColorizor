@@ -24,9 +24,10 @@
 from colorizor.cnn_colorizor_2 import colorize
 import cv2
 
-img = cv2.imread("out.jpg")
+img = cv2.imread("g1.jpg")
 ref = cv2.imread("k2.bmp")
 
 img = colorize(img, "colorizor\\model\\model.ckpt-119000", "colorizor\\model\\pts_in_hull.npy")
 cv2.imshow("title", img)
+cv2.waitKey(0)
 
