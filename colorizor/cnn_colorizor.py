@@ -19,6 +19,7 @@ def _variable_with_weight_decay(name, shape, stddev, wd):
 
 class Net(object):
     def __init__(self):
+        tf.reset_default_graph()
         pass
     
     def conv2d(self, scope, input, kernel_size, stride=1, dilation=1, relu=True, wd=0.0):
@@ -138,5 +139,7 @@ def colorize(img, ckpt, pts):
     img = np.concatenate((input, output_ab), axis=-1)
     img = color.lab2rgb(img)
     img = img[:, :, ::-1]
+    img = img * 255
+    img = img.astype(np.uint8)
 
     return img
