@@ -129,7 +129,4 @@ def colorize(img, sketch):
     output[:, :, 2] = x2.reshape((n, m))
     output = yiq2rgb(output)   
 
-    cv2.imshow("title", output)
-    cv2.waitKey(0)
-
-    cv2.imwrite("out.jpg", output)
+    return output

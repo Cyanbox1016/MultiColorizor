@@ -11,4 +11,3 @@ if __name__ == '__main__':
     main_menu = MainMenu()
     main_menu.show()
     sys.exit(app.exec_())
-    
