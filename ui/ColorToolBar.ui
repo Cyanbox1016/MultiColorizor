@@ -60,9 +60,6 @@
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
      <widget class="QComboBox" name="penTypeBox">
-      <property name="currentText">
-       <string notr="true"/>
-      </property>
       <property name="placeholderText">
        <string>类型</string>
       </property>
@@ -86,16 +83,9 @@
      </widget>
     </item>
     <item>
-     <widget class="QPushButton" name="btnZoomIn">
+     <widget class="QPushButton" name="btnLoadImg">
       <property name="text">
-       <string>放大图像</string>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QPushButton" name="btnZoomOut">
-      <property name="text">
-       <string>缩小图像</string>
+       <string>加载图像</string>
       </property>
      </widget>
     </item>

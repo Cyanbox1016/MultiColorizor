@@ -9,7 +9,7 @@ class DeepImgPanel(QWidget):
 
     def __init__(self):
         super(DeepImgPanel, self).__init__()
-        self.ui = loadUi('ui\\DeepImageColorization.ui', self)
+        self.ui = loadUi('ui/DeepImageColorization.ui', self)
         self.btnLoadImg.clicked.connect(self.loadImg)
         self.btnColorize.clicked.connect(self.colorize)
         self.btnSaveImg.clicked.connect(self.saveImg)

@@ -1,48 +1,72 @@
-import tensorflow.compat.v1 as tf
-tf.disable_v2_behavior()
-import tf_slim as slim
+import cv2
+import os
+import shutil
+from colorizor.cnn_colorizor import colorize as deep_colorize
 
-def leakyReLU(x):
-    return tf.maximum(x * 0.2, x)
+def colorize(vid_path, output_path = 'tmp', ckpt_path = './colorizor/model/model_imagenet.ckpt', dvp_path = './colorizor/deep-video-prior'):
+    if (not os.path.isdir(output_path)):
+        os.mkdir(output_path)
 
+    processed_path = "{}/processed".format(output_path)
+    original_path = "{}/original".format(output_path)
+    result_path = "{}/result".format(output_path)
 
-def VCN(input, channel=32, output_channel=3, reuse=False, ext=''):
-    if (reuse):
-        tf.get_variable_scope().reuse_variables()
+    if (os.path.isdir(processed_path)):
+        shutil.rmtree(processed_path)
+
+    if (os.path.isdir(original_path)):
+        shutil.rmtree(original_path)
+
+    if (os.path.isdir(result_path)):
+        shutil.rmtree(result_path)
     
-    conv1=slim.conv2d(input,channel,[1,1], rate=1, activation_fn=leakyReLU, weights_initializer=tf.contrib.layers.xavier_initializer(),scope=ext+'g_conv1_1')
-    conv1=slim.conv2d(conv1,channel,[3,3], rate=1, activation_fn=leakyReLU, weights_initializer=tf.contrib.layers.xavier_initializer(),scope=ext+'g_conv1_2')
-    pool1=slim.max_pool2d(conv1, [2, 2], padding='SAME' )
+    os.mkdir(processed_path)
+    os.mkdir(original_path)
+    os.mkdir(result_path)
     
-    conv2=slim.conv2d(pool1,channel*2,[3,3], rate=1, activation_fn=leakyReLU, weights_initializer=tf.contrib.layers.xavier_initializer(),scope=ext+'g_conv2_1')
-    conv2=slim.conv2d(conv2,channel*2,[3,3], rate=1, activation_fn=leakyReLU, weights_initializer=tf.contrib.layers.xavier_initializer(),scope=ext+'g_conv2_2')
-    pool2=slim.max_pool2d(conv2, [2, 2], padding='SAME' )
+    vid = cv2.VideoCapture(vid_path)
+    vid_fps = vid.get(cv2.CAP_PROP_FPS)
+    vid_h = vid.get(cv2.CAP_PROP_FRAME_HEIGHT)
+    vid_w = vid.get(cv2.CAP_PROP_FRAME_WIDTH)
+
+    rval = vid.isOpened()
+    cnt = 0
+    while (rval):
+        rval, frame = vid.read()
+        if (rval):
+            cv2.imwrite("{}/frame{:04d}.png".format(original_path, cnt), frame)
+            colorized_img = deep_colorize(frame, ckpt_path, './colorizor/model/pts_in_hull.npy')
+            cv2.imwrite("{}/frame{:04d}.png".format(processed_path, cnt), colorized_img)
+        cnt += 1
     
-    conv3=slim.conv2d(pool2,channel*4,[3,3], rate=1, activation_fn=leakyReLU, weights_initializer=tf.contrib.layers.xavier_initializer(),scope=ext+'g_conv3_1')
-    conv3=slim.conv2d(conv3,channel*4,[3,3], rate=1, activation_fn=leakyReLU, weights_initializer=tf.contrib.layers.xavier_initializer(),scope=ext+'g_conv3_2')
-    pool3=slim.max_pool2d(conv3, [2, 2], padding='SAME' )
+    pwd = os.getcwd()
+    os.chdir(dvp_path)
     
-    conv4=slim.conv2d(pool3,channel*8,[3,3], rate=1, activation_fn=leakyReLU, weights_initializer=tf.contrib.layers.xavier_initializer(),scope=ext+'g_conv4_1')
-    conv4=slim.conv2d(conv4,channel*8,[3,3], rate=1, activation_fn=leakyReLU, weights_initializer=tf.contrib.layers.xavier_initializer(),scope=ext+'g_conv4_2')
-    pool4=slim.max_pool2d(conv4, [2, 2], padding='SAME' )
+    os.system('python dvp_video_consistency.py --max_epoch 50 --input {} --processed {} --task colorization --with_IRT 1 --IRT_initialization 1 --output {}'
+                .format(os.path.join(pwd, original_path),
+                os.path.join(pwd, processed_path),
+                os.path.join(pwd, result_path)))
     
-    conv5=slim.conv2d(pool4,channel*16,[3,3], rate=1, activation_fn=leakyReLU, weights_initializer=tf.contrib.layers.xavier_initializer(),scope=ext+'g_conv5_1')
-    conv5=slim.conv2d(conv5,channel*16,[3,3], rate=1, activation_fn=leakyReLU, weights_initializer=tf.contrib.layers.xavier_initializer(),scope=ext+'g_conv5_2')
+    os.chdir(pwd)
+
+    cnt = 485
     
-    up6 =  bilinear_up_and_concat( conv5, conv4, channel*8, channel*16, scope=ext+"g_up_1" )
-    conv6=slim.conv2d(up6,  channel*8,[3,3], rate=1, activation_fn=leakyReLU, weights_initializer=tf.contrib.layers.xavier_initializer(),scope=ext+'g_conv6_1')
-    conv6=slim.conv2d(conv6,channel*8,[3,3], rate=1, activation_fn=leakyReLU, weights_initializer=tf.contrib.layers.xavier_initializer(),scope=ext+'g_conv6_2')
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    frame = cv2.imread("{}/0050/out_main_{:05d}.png".format(result_path, 0))
     
-    up7 =  bilinear_up_and_concat( conv6, conv3, channel*4, channel*8, scope=ext+"g_up_2" )
-    conv7=slim.conv2d(up7,  channel*4,[3,3], rate=1, activation_fn=leakyReLU, weights_initializer=tf.contrib.layers.xavier_initializer(),scope=ext+'g_conv7_1')
-    conv7=slim.conv2d(conv7,channel*4,[3,3], rate=1, activation_fn=leakyReLU, weights_initializer=tf.contrib.layers.xavier_initializer(),scope=ext+'g_conv7_2')
-    
-    up8 =  bilinear_up_and_concat( conv7, conv2, channel*2, channel*4, scope=ext+"g_up_3" )
-    conv8=slim.conv2d(up8,  channel*2,[3,3], rate=1, activation_fn=leakyReLU, weights_initializer=tf.contrib.layers.xavier_initializer(),scope=ext+'g_conv8_1')
-    conv8=slim.conv2d(conv8,channel*2,[3,3], rate=1, activation_fn=leakyReLU, weights_initializer=tf.contrib.layers.xavier_initializer(),scope=ext+'g_conv8_2')
-    
-    up9 =  bilinear_up_and_concat( conv8, conv1, channel, channel*2, scope=ext+"g_up_4" )
-    conv9=slim.conv2d(up9,  channel,[3,3], rate=1, activation_fn=leakyReLU, weights_initializer=tf.contrib.layers.xavier_initializer(),scope=ext+'g_conv9_1')
-    conv9=slim.conv2d(conv9,output_channel*4,[3,3], rate=1, activation_fn=None,  weights_initializer=tf.contrib.layers.xavier_initializer(),scope=ext+'g_conv9_2')
-    
-    return conv9
+    vid_w = frame.shape[1]
+    vid_h = frame.shape[0]
+
+    videowriter = cv2.VideoWriter('output.mp4', fourcc, round(vid_fps), (round(vid_w), round(vid_h)))
+
+    for i in range(cnt):
+        frame = cv2.imread("{}/0050/out_main_{:05d}.png".format(result_path, i))
+        videowriter.write(frame)
+        
+    videowriter.release()
+
+    shutil.rmtree(original_path)
+    shutil.rmtree(processed_path)
+    shutil.rmtree(result_path)
+    os.remove('./colorizor/deep-video-prior/result/colorization/commandline_args.txt')
+

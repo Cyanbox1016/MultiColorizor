@@ -9,7 +9,7 @@ class SketchColorizerPanel(QWidget):
 
     def __init__(self):
         super(SketchColorizerPanel, self).__init__()
-        self.ui = loadUi('ui\\Sketch.ui', self)
+        self.ui = loadUi('ui/Sketch.ui', self)
         self.btnLoadImg.clicked.connect(self.loadImg)
         self.btnLoadSketch.clicked.connect(self.loadSketch)
         self.btnColorize.clicked.connect(self.colorize)

@@ -16,12 +16,7 @@ class RectRegion(object):
 
 
 def colorize_swatch(img, ref):
-    cv2.imshow("title", ref)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-
     ref = cv2.cvtColor(ref, cv2.COLOR_BGR2Lab)
-    print(ref.shape)
  
     ref = ref.astype(np.float64)
     ref_lum = ref[:, :, 0]
@@ -72,9 +67,9 @@ def colorize_swatch(img, ref):
             output[i][j][2] = ref[ref_y][ref_x][2]
 
     output = output.astype(np.uint8)
-    # output = cv2.cvtColor(output, cv2.COLOR_LAB2BGR)
+    output_bgr = cv2.cvtColor(output, cv2.COLOR_LAB2BGR)
 
-    return output
+    return output, output_bgr
 
 
 def colorize(img, ref, img_swatches: list, ref_swatches: list):
@@ -94,7 +89,7 @@ def colorize(img, ref, img_swatches: list, ref_swatches: list):
         img_swatch = img[img_region.y_start:img_region.y_end + 1, img_region.x_start:img_region.x_end + 1]
         ref_swatch = ref[ref_region.y_start:ref_region.y_end + 1, ref_region.x_start:ref_region.x_end + 1]
         output_swatch = output[img_region.y_start:img_region.y_end + 1, img_region.x_start:img_region.x_end + 1]
-        output_swatch[:, :, :] = colorize_swatch(img_swatch, ref_swatch)
+        output_swatch[:, :, :], _ = colorize_swatch(img_swatch, ref_swatch)
         mask[img_region.y_start:img_region.y_end + 1, img_region.x_start:img_region.x_end + 1] = 1
         colorized_swatches.append(cv2.copyMakeBorder(output_swatch, d * 2, d * 2,
                                                      d * 2, d * 2, cv2.BORDER_REFLECT))
@@ -134,5 +129,6 @@ def colorize(img, ref, img_swatches: list, ref_swatches: list):
     output = output[2*d:output.shape[0]-2*d, 2*d:output.shape[1]-2*d]
     output = cv2.cvtColor(output, cv2.COLOR_LAB2BGR)
 
-    cv2.imshow("title", output)
-    cv2.waitKey(0)
+    return output
+    # cv2.imshow("title", output)
+    # cv2.waitKey(0)

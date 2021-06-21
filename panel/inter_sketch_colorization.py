@@ -5,9 +5,10 @@ class SketchDrawerPanel(QWidget):
 
     class SketchToolBar(QWidget):
         
-        def __init__(self):
+        def __init__(self, main):
             super().__init__()
-            self.ui = loadUi("ui\\ColorToolBar.ui", self)
+            self.ui = loadUi("ui/ColorToolBar.ui", self)
+            self.main = main
             self.btnColorSelect.clicked.connect(self.selectColor)
             self.penTypeBox.currentIndexChanged.connect(self.selectPenType)
             
@@ -38,7 +39,7 @@ class SketchDrawerPanel(QWidget):
             
     def __init__(self):
         super(SketchDrawerPanel, self)
-        self.toolBar = self.SketchToolBar()
+        self.toolBar = self.SketchToolBar(self)
     
     def run(self):
         self.toolBar.show()

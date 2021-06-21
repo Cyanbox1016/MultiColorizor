@@ -23,7 +23,7 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>交互式颜色转移</string>
+   <string>颜色转移</string>
   </property>
   <widget class="QFrame" name="horizontalFrame">
    <property name="geometry">
@@ -62,16 +62,9 @@
      </widget>
     </item>
     <item>
-     <widget class="QPushButton" name="btnAddRegion">
+     <widget class="QPushButton" name="btnLoadFile">
       <property name="text">
-       <string>添加区域</string>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QPushButton" name="btnRemoveRegion">
-      <property name="text">
-       <string>清空区域</string>
+       <string>读入选区文件</string>
       </property>
      </widget>
     </item>
