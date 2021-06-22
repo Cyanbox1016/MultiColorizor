@@ -59,23 +59,6 @@
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <widget class="QComboBox" name="penTypeBox">
-      <property name="placeholderText">
-       <string>类型</string>
-      </property>
-      <item>
-       <property name="text">
-        <string>画笔</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>橡皮擦</string>
-       </property>
-      </item>
-     </widget>
-    </item>
-    <item>
      <widget class="QPushButton" name="btnColorSelect">
       <property name="text">
        <string>选取颜色</string>
@@ -90,9 +73,23 @@
      </widget>
     </item>
     <item>
+     <widget class="QPushButton" name="btnClear">
+      <property name="text">
+       <string>清空笔画</string>
+      </property>
+     </widget>
+    </item>
+    <item>
      <widget class="QPushButton" name="btnColorize">
       <property name="text">
        <string>开始上色</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="btnSaveImg">
+      <property name="text">
+       <string>保存图像</string>
       </property>
      </widget>
     </item>
